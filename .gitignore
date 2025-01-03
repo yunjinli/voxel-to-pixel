@@ -1,0 +1,4 @@
+__pycache__/
+build
+voxel_to_pixel.egg-info
+## Custom .gitignore (To be removed)
