@@ -3,7 +3,7 @@
 #include <cuda_runtime.h>
 
 __global__ void backward_kernel(
-    const float *grad_output, const int *depth_buffer, const float *features,
+    const float *grad_output, const float *depth_buffer, const float *features,
     const float *coordinates, float *grad_features, const float *projection_matrix,
     int N, int C, int H, int W)
 {
@@ -36,7 +36,8 @@ __global__ void backward_kernel(
     // int pixel_idx = v_d * W + u_d;
     int pixel_idx = batch_id * (W * H) + v_d * W + u_d;
     // Check depth buffer for the closest voxel at this pixel
-    if (__int_as_float(depth_buffer[pixel_idx]) != depth)
+    // if (__int_as_float(depth_buffer[pixel_idx]) != depth)
+    if (depth_buffer[pixel_idx] != depth)
         return;
 
     // Backpropagate feature gradients
@@ -63,7 +64,7 @@ torch::Tensor backward(
     int blocks = (N + threads - 1) / threads;
 
     backward_kernel<<<blocks, threads, sizeof(float) * 12>>>(
-        grad_output.data_ptr<float>(), depth_buffer.data_ptr<int>(), features.data_ptr<float>(),
+        grad_output.data_ptr<float>(), depth_buffer.data_ptr<float>(), features.data_ptr<float>(),
         coordinates.data_ptr<float>(), grad_features.data_ptr<float>(), projection_matrix.data_ptr<float>(),
         N, C, H, W);
 
