@@ -1,7 +1,8 @@
 #include <torch/extension.h>
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> forward(
     torch::Tensor features, torch::Tensor coordinates,
-    torch::Tensor projection_matrix, std::vector<int64_t> output_size);
+    torch::Tensor projection_matrix, std::vector<int64_t> output_size,
+    int batch_size);
 
 torch::Tensor backward(torch::Tensor grad_output, torch::Tensor features,
                        torch::Tensor coordinates, torch::Tensor depth_buffer,

@@ -13,9 +13,10 @@ __global__ void project_kernel(
         return;
 
     // Load coordinates
-    float z = coordinates[idx * 3];
-    float y = coordinates[idx * 3 + 1];
-    float x = coordinates[idx * 3 + 2];
+    int batch_id = int(coordinates[idx * 4]);
+    float z = coordinates[idx * 4 + 1];
+    float y = coordinates[idx * 4 + 2];
+    float x = coordinates[idx * 4 + 3];
 
     // Apply projection matrix
     float u = projection_matrix[0] * x + projection_matrix[1] * y + projection_matrix[2] * z + projection_matrix[3];
@@ -33,7 +34,7 @@ __global__ void project_kernel(
         return;
     // printf("(%d, %d) = %f\n", u_d, v_d, depth);
     // Depth selection and feature update
-    int pixel_idx = v_d * W + u_d;
+    int pixel_idx = batch_id * (W * H) + v_d * W + u_d;
 
     // atomicMin(&depth_buffer[pixel_idx], int(depth));
     // if (depth_buffer[pixel_idx] == int(depth))
@@ -56,13 +57,14 @@ __global__ void project_kernel(
         for (int c = 0; c < C; ++c)
         {
             // atomicAdd(&output_features[pixel_idx * C + c], features[idx * C + c]);
-            output_features[pixel_idx * C + c] = features[idx * C + c];
+            // output_features[pixel_idx * C + c] = features[idx * C + c];
+            output_features[batch_id * (W * H * C) + c * (W * H) + v_d * W + u_d] = features[idx * C + c];
         }
         inv_depth_map[pixel_idx] = 1.0 / depth;
     }
 }
 
-std::tuple<torch::Tensor, torch::Tensor, torch::Tensor>  forward(torch::Tensor features, torch::Tensor coordinates, torch::Tensor projection_matrix, std::vector<int64_t> output_size)
+std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> forward(torch::Tensor features, torch::Tensor coordinates, torch::Tensor projection_matrix, std::vector<int64_t> output_size, int batch_size)
 {
     // Extract dimensions
     int N = features.size(0);
@@ -70,9 +72,10 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor>  forward(torch::Tensor f
     int H = output_size[0];
     int W = output_size[1];
 
-    auto output_features = torch::zeros({H, W, C}, features.options());
-    auto inv_depth_map = torch::zeros({H, W}, features.options());
-    auto depth_buffer = torch::full({H, W}, INT_MAX, torch::TensorOptions().dtype(torch::kInt).device(features.device()));
+    // auto output_features = torch::zeros({H, W, C}, features.options());
+    auto output_features = torch::zeros({batch_size, C, H, W}, features.options());
+    auto inv_depth_map = torch::zeros({batch_size, H, W}, features.options());
+    auto depth_buffer = torch::full({batch_size, H, W}, INT_MAX, torch::TensorOptions().dtype(torch::kInt).device(features.device()));
 
     int threads = 256;
     int blocks = (N + threads - 1) / threads;

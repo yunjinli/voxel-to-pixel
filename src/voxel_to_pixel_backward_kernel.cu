@@ -13,9 +13,10 @@ __global__ void backward_kernel(
         return;
 
     // Load coordinates
-    float z = coordinates[idx * 3];
-    float y = coordinates[idx * 3 + 1];
-    float x = coordinates[idx * 3 + 2];
+    int batch_id = int(coordinates[idx * 4]);
+    float z = coordinates[idx * 4 + 1];
+    float y = coordinates[idx * 4 + 2];
+    float x = coordinates[idx * 4 + 3];
 
     // Apply the projection matrix (assume saved in shared memory for performance)
     // extern __shared__ float projection_matrix[];
@@ -32,7 +33,8 @@ __global__ void backward_kernel(
         return;
     if (depth < 0)
         return;
-    int pixel_idx = v_d * W + u_d;
+    // int pixel_idx = v_d * W + u_d;
+    int pixel_idx = batch_id * (W * H) + v_d * W + u_d;
     // Check depth buffer for the closest voxel at this pixel
     if (__int_as_float(depth_buffer[pixel_idx]) != depth)
         return;
@@ -40,7 +42,8 @@ __global__ void backward_kernel(
     // Backpropagate feature gradients
     for (int c = 0; c < C; ++c)
     {
-        atomicAdd(&grad_features[idx * C + c], grad_output[pixel_idx * C + c]);
+        // atomicAdd(&grad_features[idx * C + c], grad_output[pixel_idx * C + c]);
+        atomicAdd(&grad_features[idx * C + c], grad_output[batch_id * (W * H * C) + c * (W * H) + v_d * W + u_d]);
     }
 }
 
