@@ -27,9 +27,9 @@ __global__ void backward_kernel(
     // Map to pixel coordinates
     int u_d = int(u / depth);
     int v_d = int(v / depth);
-    if (u_d < 0 || u_d > W)
+    if (u_d < 0 || u_d >= W)
         return;
-    if (v_d < 0 || v_d > H)
+    if (v_d < 0 || v_d >= H)
         return;
     if (depth < 0)
         return;
