@@ -34,9 +34,9 @@ __global__ void depth_computation_kernel(
     int u_d = int(u / depth);
     int v_d = int(v / depth);
     // printf("(%d, %d) = %f\n", u_d, v_d, depth);
-    if (u_d < 0 || u_d > W)
+    if (u_d < 0 || u_d >= W)
         return;
-    if (v_d < 0 || v_d > H)
+    if (v_d < 0 || v_d >= H)
         return;
     if (depth < 0)
         return;
@@ -98,9 +98,9 @@ __global__ void feature_update_kernel(
     int u_d = int(u / depth);
     int v_d = int(v / depth);
     // printf("(%d, %d) = %f\n", u_d, v_d, depth);
-    if (u_d < 0 || u_d > W)
+    if (u_d < 0 || u_d >= W)
         return;
-    if (v_d < 0 || v_d > H)
+    if (v_d < 0 || v_d >= H)
         return;
     if (depth < 0)
         return;
